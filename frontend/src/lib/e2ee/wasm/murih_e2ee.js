@@ -22,6 +22,24 @@ export class Device {
         wasm.__wbg_device_free(ptr, 0);
     }
     /**
+     * Creates (once) this device's sender key for a group and returns the distribution
+     * envelope to encrypt to each other member with `encrypt`. Send it only over the
+     * 1:1 session, never in the clear.
+     * @param {string} group_id
+     * @returns {Uint8Array}
+     */
+    createSenderKeyDistribution(group_id) {
+        const ptr0 = passStringToWasm0(group_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.device_createSenderKeyDistribution(this.__wbg_ptr, ptr0, len0);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v2;
+    }
+    /**
      * Decrypts a message received from a remote device.
      * @param {string} remote_name
      * @param {Uint8Array} data
@@ -83,6 +101,73 @@ export class Device {
         }
     }
     /**
+     * Creates `count` one-time prekeys, stores their private parts, and returns the public
+     * parts as a JSON array of `{ "key_id", "public_key" }`, ready for the upload endpoint
+     * (which accepts at most 100 per request). Ids never collide with earlier ones.
+     * @param {number} count
+     * @returns {string}
+     */
+    generatePrekeys(count) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ret = wasm.device_generatePrekeys(this.__wbg_ptr, count);
+            var ptr1 = ret[0];
+            var len1 = ret[1];
+            if (ret[3]) {
+                ptr1 = 0; len1 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * Decrypts a group message from `sender_name`. Refuses any message whose key the
+     * sender did not announce for this group, so a key from another group cannot be used.
+     * @param {string} sender_name
+     * @param {string} group_id
+     * @param {Uint8Array} data
+     * @returns {Uint8Array}
+     */
+    groupDecrypt(sender_name, group_id, data) {
+        const ptr0 = passStringToWasm0(sender_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(group_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.device_groupDecrypt(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v4 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v4;
+    }
+    /**
+     * Encrypts one plaintext for a group, once, with this device's sender key.
+     * @param {string} group_id
+     * @param {Uint8Array} plaintext
+     * @returns {Uint8Array}
+     */
+    groupEncrypt(group_id, plaintext) {
+        const ptr0 = passStringToWasm0(group_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray8ToWasm0(plaintext, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.device_groupEncrypt(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v3;
+    }
+    /**
      * Creates a device with fresh identity, signed, Kyber and one-time prekeys.
      * @param {string} name
      * @param {number} registration_id
@@ -106,6 +191,22 @@ export class Device {
     prekeyCount() {
         const ret = wasm.device_prekeyCount(this.__wbg_ptr);
         return ret >>> 0;
+    }
+    /**
+     * Stores a sender key received from `sender_name` (the plaintext of a 1:1 message
+     * that carried a distribution envelope), so their group messages can be read.
+     * @param {string} sender_name
+     * @param {Uint8Array} data
+     */
+    processSenderKeyDistribution(sender_name, data) {
+        const ptr0 = passStringToWasm0(sender_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.device_processSenderKeyDistribution(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
     }
     /**
      * The public keys to upload to the key directory, as JSON.
@@ -147,7 +248,22 @@ export class Device {
         return Device.__wrap(ret[0]);
     }
     /**
-     * Starts an encrypted session with another device, from its public bundle.
+     * Discards this device's sender key for a group. The next `createSenderKeyDistribution`
+     * starts a new chain, which members who were removed never receive. Call it when
+     * membership changes, before redistributing.
+     * @param {string} group_id
+     */
+    rotateSenderKey(group_id) {
+        const ptr0 = passStringToWasm0(group_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.device_rotateSenderKey(this.__wbg_ptr, ptr0, len0);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Starts an encrypted session with another device, from its public bundle. The bundle
+     * may carry no one-time prekey (`one_time_prekey` null or absent).
      * @param {string} remote_name
      * @param {string} remote_bundle_json
      */

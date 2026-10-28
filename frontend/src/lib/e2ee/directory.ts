@@ -3,7 +3,12 @@
  * this boundary.
  */
 import { authFetch } from '@/lib/api/authFetch';
+import type { PublicBundleJson } from './bridge';
 
+/** The server accepts at most this many one-time prekeys per upload request. */
+export const MAX_PREKEYS_PER_UPLOAD = 100;
+
+/** Body of POST /e2ee/devices: the device's public keys, including its Kyber prekey. */
 export interface RegisterDeviceInput {
   device_uuid: string;
   registration_id: number;
@@ -11,6 +16,9 @@ export interface RegisterDeviceInput {
   signed_prekey_id: number;
   signed_prekey_public: string;
   signed_prekey_signature: string;
+  kyber_prekey_id: number;
+  kyber_prekey_public: string;
+  kyber_prekey_signature: string;
 }
 
 export interface OneTimePrekey {
@@ -18,25 +26,18 @@ export interface OneTimePrekey {
   public_key: string;
 }
 
-/** Post-quantum (Kyber) prekey. The directory does not store one yet, so peers without it cannot start a session. */
-export interface KyberPrekey {
-  id: number;
-  public_key: string;
-  signature: string;
-}
-
-export interface DeviceBundle {
-  device_uuid: string;
-  registration_id: number;
-  identity_key: string;
-  signed_prekey: { id: number; public_key: string; signature: string };
-  one_time_prekey: OneTimePrekey | null;
-  kyber_prekey?: KyberPrekey | null;
-}
+/**
+ * One element of GET /e2ee/users/{user}/bundles: the flat public bundle of a device,
+ * plus its UUID. Devices without Kyber keys are not listed.
+ */
+export type DeviceBundle = PublicBundleJson & { device_uuid: string };
 
 export class DirectoryError extends Error {
-  constructor(message: string, readonly status: number) {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
     super(message);
+    this.status = status;
     this.name = 'DirectoryError';
   }
 }
@@ -67,13 +68,17 @@ export async function registerDevice(input: RegisterDeviceInput): Promise<void> 
   await send('/e2ee/devices', { method: 'POST', body: JSON.stringify(input) });
 }
 
+/** Uploads one-time prekeys in batches of at most MAX_PREKEYS_PER_UPLOAD, in order. */
 export async function uploadPrekeys(deviceUuid: string, prekeys: OneTimePrekey[]): Promise<void> {
-  await send(`/e2ee/devices/${encodeURIComponent(deviceUuid)}/prekeys`, {
-    method: 'POST',
-    body: JSON.stringify({
-      prekeys: prekeys.map((prekey) => ({ key_id: prekey.id, public_key: prekey.public_key })),
-    }),
-  });
+  for (let start = 0; start < prekeys.length; start += MAX_PREKEYS_PER_UPLOAD) {
+    const batch = prekeys.slice(start, start + MAX_PREKEYS_PER_UPLOAD);
+    await send(`/e2ee/devices/${encodeURIComponent(deviceUuid)}/prekeys`, {
+      method: 'POST',
+      body: JSON.stringify({
+        prekeys: batch.map((prekey) => ({ key_id: prekey.id, public_key: prekey.public_key })),
+      }),
+    });
+  }
 }
 
 /** Every device of a user, each with one one-time prekey claimed for this request. */

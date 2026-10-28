@@ -21,21 +21,23 @@ class FakeDevice {
   publicBundle(): string {
     return JSON.stringify({
       registration_id: this.registrationId,
-      device_id: 1,
       identity_key: 'aWRlbnRpdHk=',
-      prekey_id: 1,
-      prekey_public: 'cHJla2V5',
       signed_prekey_id: 1,
       signed_prekey_public: 'c2lnbmVk',
       signed_prekey_signature: 'c2ln',
       kyber_prekey_id: 1,
       kyber_prekey_public: 'a3liZXI=',
       kyber_prekey_signature: 'a3lzaWc=',
+      one_time_prekey: null,
     });
   }
+  // Returns one generated prekey, in the bridge's { key_id, public_key } shape.
+  generatePrekeys(): string {
+    return JSON.stringify([{ key_id: 1, public_key: 'cHJla2V5' }]);
+  }
   startSession(remote: string, bundleJson: string): void {
-    const bundle = JSON.parse(bundleJson) as { prekey_id: number };
-    if (!bundle.prekey_id) throw new Error('missing prekey');
+    const bundle = JSON.parse(bundleJson) as { one_time_prekey: { id: number } | null };
+    if (!bundle.one_time_prekey) throw new Error('missing prekey');
     this.sessions.add(remote);
   }
   // Ciphertext format for the fake: "<addressed device name>|<text>".
@@ -54,15 +56,19 @@ class FakeDevice {
   }
 }
 
+// `Device` is a getter so the class is read when device.ts first uses it, not when
+// vi.mock's factory runs (the factory is hoisted above this class declaration).
 vi.mock('./bridge', () => ({
-  Device: FakeDevice,
+  get Device() {
+    return FakeDevice;
+  },
   loadBridge: async () => undefined,
 }));
 
 const directory = vi.hoisted(() => ({
-  registerDevice: vi.fn(async (_input: unknown) => undefined),
-  uploadPrekeys: vi.fn(async (_uuid: string, _prekeys: unknown) => undefined),
-  fetchBundles: vi.fn(async (_userId: number) => [] as unknown[]),
+  registerDevice: vi.fn<(input: unknown) => Promise<void>>(async () => undefined),
+  uploadPrekeys: vi.fn<(uuid: string, prekeys: unknown) => Promise<void>>(async () => undefined),
+  fetchBundles: vi.fn<(userId: number) => Promise<unknown[]>>(async () => []),
 }));
 vi.mock('./directory', () => directory);
 
@@ -83,14 +89,19 @@ vi.mock('./vault', () => ({
     JSON.parse(new TextDecoder().decode(sealed.ciphertext)),
 }));
 
+/** A directory bundle in the flat shape the server returns. */
 function peerBundle(overrides: Record<string, unknown> = {}) {
   return {
     device_uuid: 'peer-device',
     registration_id: 99,
     identity_key: 'aWRlbnRpdHk=',
-    signed_prekey: { id: 1, public_key: 'c2lnbmVk', signature: 'c2ln' },
+    signed_prekey_id: 1,
+    signed_prekey_public: 'c2lnbmVk',
+    signed_prekey_signature: 'c2ln',
+    kyber_prekey_id: 1,
+    kyber_prekey_public: 'a3liZXI=',
+    kyber_prekey_signature: 'a3lzaWc=',
     one_time_prekey: { id: 5, public_key: 'b25lLXRpbWU=' },
-    kyber_prekey: { id: 1, public_key: 'a3liZXI=', signature: 'a3lzaWc=' },
     ...overrides,
   };
 }
@@ -114,6 +125,9 @@ describe('e2ee device service', () => {
     expect(directory.registerDevice.mock.calls[0][0]).toMatchObject({
       identity_key: 'aWRlbnRpdHk=',
       signed_prekey_id: 1,
+      kyber_prekey_id: 1,
+      kyber_prekey_public: 'a3liZXI=',
+      kyber_prekey_signature: 'a3lzaWc=',
     });
     expect(directory.uploadPrekeys).toHaveBeenCalledWith(expect.any(String), [{ id: 1, public_key: 'cHJla2V5' }]);
     expect(vaultStore.has(1)).toBe(true);
@@ -159,7 +173,7 @@ describe('e2ee device service', () => {
   });
 
   it('fails clearly when the recipient has no post-quantum key, instead of sending plaintext', async () => {
-    directory.fetchBundles.mockResolvedValueOnce([peerBundle({ kyber_prekey: undefined })]);
+    directory.fetchBundles.mockResolvedValueOnce([peerBundle({ kyber_prekey_public: '' })]);
     await ensureDevice(1);
 
     await expect(sendEncrypted(2, 'hello')).rejects.toMatchObject({ code: 'PEER_NEEDS_PQ_KEY' });

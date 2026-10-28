@@ -8,19 +8,22 @@
  * each one re-reads the sealed device first, because another tab may have moved
  * the ratchet forward since this tab last saved it.
  */
-import { Device, loadBridge, type PublicBundleJson } from './bridge';
+import { Device, loadBridge, type GeneratedPrekeyJson, type PublicBundleJson } from './bridge';
 import { fetchBundles, registerDevice, uploadPrekeys, type DeviceBundle } from './directory';
 import { getWrapKey, loadSealedDevice, open, saveSealedDevice, seal } from './vault';
 
 const STATE_VERSION = 1;
-/** Created by the bridge; only the first one is exposed in its public bundle today. */
+/** One-time prekeys generated and uploaded when a device registers. */
 const PREKEY_COUNT = 20;
 
 export type E2eeErrorCode = 'NOT_READY' | 'PEER_HAS_NO_DEVICE' | 'PEER_HAS_NO_PREKEY' | 'PEER_NEEDS_PQ_KEY';
 
 export class E2eeError extends Error {
-  constructor(readonly code: E2eeErrorCode, message: string) {
+  readonly code: E2eeErrorCode;
+
+  constructor(code: E2eeErrorCode, message: string) {
     super(message);
+    this.code = code;
     this.name = 'E2eeError';
   }
 }
@@ -105,7 +108,11 @@ async function persist(s: ActiveDevice): Promise<void> {
   await saveSealedDevice(s.userId, await seal(key, s.userId, stored));
 }
 
-/** Uploads this device's public keys to the key directory. */
+/**
+ * Registers this device's public keys with the key directory, then generates and
+ * uploads its one-time prekeys. The private parts are saved before any public part
+ * leaves the browser, so the directory never holds a key this device cannot use.
+ */
 async function publish(s: ActiveDevice): Promise<void> {
   const bundle = JSON.parse(s.device.publicBundle()) as PublicBundleJson;
   await registerDevice({
@@ -115,8 +122,16 @@ async function publish(s: ActiveDevice): Promise<void> {
     signed_prekey_id: bundle.signed_prekey_id,
     signed_prekey_public: bundle.signed_prekey_public,
     signed_prekey_signature: bundle.signed_prekey_signature,
+    kyber_prekey_id: bundle.kyber_prekey_id,
+    kyber_prekey_public: bundle.kyber_prekey_public,
+    kyber_prekey_signature: bundle.kyber_prekey_signature,
   });
-  await uploadPrekeys(s.deviceUuid, [{ id: bundle.prekey_id, public_key: bundle.prekey_public }]);
+  const generated = JSON.parse(s.device.generatePrekeys(PREKEY_COUNT)) as GeneratedPrekeyJson[];
+  await persist(s);
+  await uploadPrekeys(
+    s.deviceUuid,
+    generated.map((prekey) => ({ id: prekey.key_id, public_key: prekey.public_key })),
+  );
   s.registered = true;
 }
 
@@ -179,7 +194,8 @@ export function ensureDevice(userId: number): Promise<void> {
         userId,
         deviceUuid: crypto.randomUUID(),
         registered: false,
-        device: new Device(nameFor(userId), randomRegistrationId(), PREKEY_COUNT),
+        // The bridge's constructor makes no one-time prekeys: publish() generates and uploads them.
+        device: new Device(nameFor(userId), randomRegistrationId(), 0),
         sessionPeers: new Set(),
       };
       await persist(fresh);
@@ -202,23 +218,25 @@ export function releaseDevice(): Promise<void> {
   });
 }
 
-/** Maps one directory bundle to the JSON the bridge expects. */
+/**
+ * Maps one directory bundle to the JSON the bridge expects, with the one-time prekey
+ * claimed for this session. The directory uses the bridge's field names, so only the
+ * one-time prekey is swapped in.
+ */
 function toPeerBundle(bundle: DeviceBundle, oneTime: NonNullable<DeviceBundle['one_time_prekey']>): PublicBundleJson {
-  if (!bundle.kyber_prekey) {
+  if (!bundle.kyber_prekey_public) {
     throw new E2eeError('PEER_NEEDS_PQ_KEY', 'The recipient has no post-quantum key in the directory yet.');
   }
   return {
     registration_id: bundle.registration_id,
-    device_id: 1,
     identity_key: bundle.identity_key,
-    prekey_id: oneTime.id,
-    prekey_public: oneTime.public_key,
-    signed_prekey_id: bundle.signed_prekey.id,
-    signed_prekey_public: bundle.signed_prekey.public_key,
-    signed_prekey_signature: bundle.signed_prekey.signature,
-    kyber_prekey_id: bundle.kyber_prekey.id,
-    kyber_prekey_public: bundle.kyber_prekey.public_key,
-    kyber_prekey_signature: bundle.kyber_prekey.signature,
+    signed_prekey_id: bundle.signed_prekey_id,
+    signed_prekey_public: bundle.signed_prekey_public,
+    signed_prekey_signature: bundle.signed_prekey_signature,
+    kyber_prekey_id: bundle.kyber_prekey_id,
+    kyber_prekey_public: bundle.kyber_prekey_public,
+    kyber_prekey_signature: bundle.kyber_prekey_signature,
+    one_time_prekey: oneTime,
   };
 }
 
