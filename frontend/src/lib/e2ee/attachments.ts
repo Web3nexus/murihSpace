@@ -7,6 +7,19 @@
  *   1:1 Signal session, never in the upload request.
  */
 
+/** Reads a Blob's bytes. FileReader is the fallback for environments whose File lacks arrayBuffer (jsdom). */
+function readBytes(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
+  if (typeof blob.arrayBuffer === "function") {
+    return blob.arrayBuffer().then((buffer) => new Uint8Array(buffer));
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 export interface AttachmentKeyMetadata {
   /** Base64 of the raw 256-bit AES key. */
   key: string;
@@ -69,7 +82,7 @@ export async function encryptAttachment(
     'decrypt',
   ]);
   const iv = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(IV_BYTES)));
-  const plaintext = new Uint8Array(await file.arrayBuffer());
+  const plaintext = await readBytes(file);
 
   const encrypted = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv, tagLength: TAG_BITS },

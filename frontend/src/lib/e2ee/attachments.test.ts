@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { decryptAttachment, encryptAttachment } from './attachments';
 
 async function bytesOf(blob: Blob): Promise<Uint8Array> {
-  return new Uint8Array(await blob.arrayBuffer());
+  return new Promise<Uint8Array>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
 }
 
 describe('attachments e2ee', () => {
