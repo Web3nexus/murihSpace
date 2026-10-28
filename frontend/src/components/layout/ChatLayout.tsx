@@ -32,6 +32,7 @@ import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Message, MessageAvatar } from '@/components/ui/message';
 import { VoiceMessagePlayer } from '@/components/chat/VoiceMessagePlayer';
 import { sendEncrypted } from '@/lib/e2ee';
+import { E2EE_DIRECT_MESSAGES_ENABLED } from '@/lib/e2ee/flags';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -80,6 +81,9 @@ export function ChatLayout() {
   const [activeConv, setActiveConv] = useState<ConversationItem | null>(null);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Latest messages for realtime handlers, which are not re-created on every change.
+  const messagesRef = useRef<ChatMessage[]>(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
@@ -220,11 +224,17 @@ export function ChatLayout() {
   };
 
   useRealtimeMessaging(activeConv?.id ?? null, currentUserId, {
-    onMessageReceived: useCallback((msg: ChatMessage) => {
-      const isSentByMe = msg.user_id === currentUserId;
+    onMessageReceived: useCallback((incoming: ChatMessage) => {
+      const isSentByMe = incoming.user_id === currentUserId;
       if (!isSentByMe) {
         playMessageReceivedSound();
       }
+      // An encrypted echo can arrive without its text. Keep the text already shown for it.
+      const known = messagesRef.current.find((m) =>
+        (incoming.client_uuid && m.client_uuid === incoming.client_uuid) || (incoming.id && m.id === incoming.id));
+      const msg: ChatMessage = incoming.encryption && !incoming.content && known
+        ? { ...incoming, content: known.content }
+        : incoming;
       setMessages((prev) => {
         // Reconcile optimistic/pending message by client_uuid
         if (msg.client_uuid && prev.some((m) => m.client_uuid === msg.client_uuid)) {
@@ -450,7 +460,7 @@ export function ChatLayout() {
       // Text in a 1:1 direct chat is encrypted on this device. Encryption failures
       // throw here, so the message is marked failed and never sent as plaintext.
       const peerId = activeConv.type === 'direct' ? activeConv.other_user?.id : undefined;
-      const encrypt = peerId !== undefined && msg.type === 'text' && !msg.attachment_url && msg.content.length > 0;
+      const encrypt = E2EE_DIRECT_MESSAGES_ENABLED && peerId !== undefined && msg.type === 'text' && !msg.attachment_url && msg.content.length > 0;
       const body = encrypt
         ? { content: '', ciphertext: await sendEncrypted(peerId, msg.content), encryption: 'signal_v1' }
         : { content: msg.content };
