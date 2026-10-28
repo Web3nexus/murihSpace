@@ -68,17 +68,23 @@ export async function registerDevice(input: RegisterDeviceInput): Promise<void> 
   await send('/e2ee/devices', { method: 'POST', body: JSON.stringify(input) });
 }
 
-/** Uploads one-time prekeys in batches of at most MAX_PREKEYS_PER_UPLOAD, in order. */
-export async function uploadPrekeys(deviceUuid: string, prekeys: OneTimePrekey[]): Promise<void> {
+/**
+ * Uploads one-time prekeys in batches of at most MAX_PREKEYS_PER_UPLOAD, in order.
+ * Resolves to the number of unclaimed prekeys the server reports after the last batch.
+ */
+export async function uploadPrekeys(deviceUuid: string, prekeys: OneTimePrekey[]): Promise<number> {
+  let available = 0;
   for (let start = 0; start < prekeys.length; start += MAX_PREKEYS_PER_UPLOAD) {
     const batch = prekeys.slice(start, start + MAX_PREKEYS_PER_UPLOAD);
-    await send(`/e2ee/devices/${encodeURIComponent(deviceUuid)}/prekeys`, {
+    const result = await send<{ available: number }>(`/e2ee/devices/${encodeURIComponent(deviceUuid)}/prekeys`, {
       method: 'POST',
       body: JSON.stringify({
         prekeys: batch.map((prekey) => ({ key_id: prekey.id, public_key: prekey.public_key })),
       }),
     });
+    available = result.available;
   }
+  return available;
 }
 
 /** Every device of a user, each with one one-time prekey claimed for this request. */
