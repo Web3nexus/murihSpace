@@ -137,6 +137,10 @@ class AudioRoomController extends Controller
         ]);
 
         $effectiveE2ee = (bool) ($validated['e2ee'] ?? $room->e2ee);
+        if (array_key_exists('e2ee', $validated) && $validated['e2ee'] === null) {
+            // A null e2ee keeps the room's current setting rather than clearing it.
+            $validated['e2ee'] = $effectiveE2ee;
+        }
         $effectiveRecorded = (bool) ($validated['is_recorded'] ?? $room->is_recorded);
         $recordingSkip = $effectiveRecorded ? RoomRecordingPolicy::skipReason($effectiveE2ee) : null;
         if ($recordingSkip !== null) {

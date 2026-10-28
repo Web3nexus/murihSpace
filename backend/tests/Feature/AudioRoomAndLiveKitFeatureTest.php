@@ -99,6 +99,31 @@ class AudioRoomAndLiveKitFeatureTest extends TestCase
         $this->assertEquals('ended', $endData['status']);
     }
 
+    public function test_null_e2ee_on_update_keeps_existing_encrypted_room_encrypted(): void
+    {
+        Sanctum::actingAs($this->host);
+
+        $createRes = $this->postJson('/api/v1/audio-rooms', [
+            'title' => 'Encrypted update room',
+            'e2ee' => true,
+        ]);
+        $createRes->assertStatus(201);
+        $roomId = $createRes->json('data.data.id') ?? $createRes->json('data.id');
+
+        $updateRes = $this->putJson("/api/v1/audio-rooms/{$roomId}", [
+            'title' => 'Encrypted update room renamed',
+            'e2ee' => null,
+        ]);
+        $updateRes->assertOk();
+
+        $this->assertTrue((bool) AudioRoom::findOrFail($roomId)->e2ee);
+        $this->assertDatabaseHas('audio_rooms', [
+            'id' => $roomId,
+            'title' => 'Encrypted update room renamed',
+            'e2ee' => true,
+        ]);
+    }
+
     public function test_unjoined_user_cannot_get_livekit_token(): void
     {
         $room = AudioRoom::create([
