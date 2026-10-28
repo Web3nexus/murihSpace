@@ -32,9 +32,16 @@ pub struct SessionPart {
     sessions: HashMap<String, Vec<u8>>,
 }
 
+/// The key directory stores prekey ids as signed 32-bit integers.
+pub const MAX_PREKEY_ID: u32 = i32::MAX as u32;
+
 #[derive(Serialize, Deserialize, Default)]
 pub struct PreKeyPart {
     pre_keys: HashMap<u32, Vec<u8>>,
+    /// Highest one-time prekey id ever allocated. Ids are never reused, even after a
+    /// prekey is consumed, so a new key cannot take an id the server already handed out.
+    #[serde(default)]
+    high_water: u32,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -211,6 +218,19 @@ impl PreKeyPart {
     /// The lowest one-time prekey id not yet used up. This is the one a bundle advertises.
     pub fn lowest_id(&self) -> Option<u32> {
         self.pre_keys.keys().copied().min()
+    }
+
+    /// Reserves `count` new consecutive ids, all above every id used so far.
+    pub fn allocate_ids(&mut self, count: u32) -> Result<Vec<u32>, String> {
+        let highest = self.pre_keys.keys().copied().max().unwrap_or(0).max(self.high_water);
+        let last = u64::from(highest) + u64::from(count);
+        if last > u64::from(MAX_PREKEY_ID) {
+            return Err("one-time prekey ids are exhausted".to_string());
+        }
+        if count > 0 {
+            self.high_water = last as u32;
+        }
+        Ok((highest + 1..=highest + count).collect())
     }
 }
 
