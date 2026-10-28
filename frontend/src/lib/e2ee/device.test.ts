@@ -3,7 +3,11 @@ import { E2eeError, ensureDevice, receiveDecrypted, releaseDevice, sendEncrypted
 
 // A stand-in for the WebAssembly bridge. It models only what device.ts relies on:
 // per-name sessions, and a ciphertext that only the addressed device can open.
-const bridgeState = vi.hoisted(() => ({ created: [] as FakeDevice[] }));
+const bridgeState = vi.hoisted(() => ({
+  created: [] as FakeDevice[],
+  // The peer bundle each startSession call was given, as the bridge received it.
+  started: [] as { remote: string; bundle: { registration_id: number; one_time_prekey: { id: number } | null } }[],
+}));
 
 class FakeDevice {
   sessions = new Set<string>();
@@ -36,8 +40,8 @@ class FakeDevice {
     return JSON.stringify([{ key_id: 1, public_key: 'cHJla2V5' }]);
   }
   startSession(remote: string, bundleJson: string): void {
-    const bundle = JSON.parse(bundleJson) as { one_time_prekey: { id: number } | null };
-    if (!bundle.one_time_prekey) throw new Error('missing prekey');
+    const bundle = JSON.parse(bundleJson) as { registration_id: number; one_time_prekey: { id: number } | null };
+    bridgeState.started.push({ remote, bundle });
     this.sessions.add(remote);
   }
   // Ciphertext format for the fake: "<addressed device name>|<text>".
@@ -67,7 +71,8 @@ vi.mock('./bridge', () => ({
 
 const directory = vi.hoisted(() => ({
   registerDevice: vi.fn<(input: unknown) => Promise<void>>(async () => undefined),
-  uploadPrekeys: vi.fn<(uuid: string, prekeys: unknown) => Promise<void>>(async () => undefined),
+  // Resolves to the unclaimed count the server reports after the upload.
+  uploadPrekeys: vi.fn<(uuid: string, prekeys: unknown) => Promise<number>>(async () => 20),
   fetchBundles: vi.fn<(userId: number) => Promise<unknown[]>>(async () => []),
 }));
 vi.mock('./directory', () => directory);
@@ -115,6 +120,7 @@ describe('e2ee device service', () => {
     vi.clearAllMocks();
     vaultStore.clear();
     bridgeState.created.length = 0;
+    bridgeState.started.length = 0;
     await releaseDevice();
   });
 
@@ -179,14 +185,67 @@ describe('e2ee device service', () => {
     await expect(sendEncrypted(2, 'hello')).rejects.toMatchObject({ code: 'PEER_NEEDS_PQ_KEY' });
   });
 
-  it('fails when the recipient has no device or no one-time key left', async () => {
+  it('fails when the recipient has no device', async () => {
     await ensureDevice(1);
 
     directory.fetchBundles.mockResolvedValueOnce([]);
-    await expect(sendEncrypted(2, 'hi')).rejects.toBeInstanceOf(E2eeError);
+    await expect(sendEncrypted(2, 'hi')).rejects.toMatchObject({ code: 'PEER_HAS_NO_DEVICE' });
+  });
 
-    directory.fetchBundles.mockResolvedValueOnce([peerBundle({ one_time_prekey: null })]);
-    await expect(sendEncrypted(3, 'hi')).rejects.toMatchObject({ code: 'PEER_HAS_NO_PREKEY' });
+  it('prefers the newest recipient device that still has a one-time prekey', async () => {
+    directory.fetchBundles.mockResolvedValueOnce([
+      peerBundle({ device_uuid: 'old', registration_id: 11, one_time_prekey: { id: 3, public_key: 'b2xk' } }),
+      peerBundle({ device_uuid: 'newer', registration_id: 22, one_time_prekey: { id: 7, public_key: 'bmV3' } }),
+      peerBundle({ device_uuid: 'newest', registration_id: 33, one_time_prekey: null }),
+    ]);
+    await ensureDevice(1);
+
+    await sendEncrypted(2, 'hello');
+
+    expect(bridgeState.started).toHaveLength(1);
+    expect(bridgeState.started[0].bundle.registration_id).toBe(22);
+    expect(bridgeState.started[0].bundle.one_time_prekey).toEqual({ id: 7, public_key: 'bmV3' });
+  });
+
+  it('falls back to the newest recipient device without a one-time prekey', async () => {
+    directory.fetchBundles.mockResolvedValueOnce([
+      peerBundle({ registration_id: 11, one_time_prekey: null }),
+      peerBundle({ registration_id: 22, one_time_prekey: null }),
+    ]);
+    await ensureDevice(1);
+
+    const ciphertext = await sendEncrypted(2, 'hello');
+
+    expect(bridgeState.started).toHaveLength(1);
+    expect(bridgeState.started[0].bundle.registration_id).toBe(22);
+    expect(bridgeState.started[0].bundle.one_time_prekey).toBeNull();
+    expect(text(base64ToBytes(ciphertext))).toBe('user:2|hello');
+  });
+
+  it('tops up one-time prekeys when the server reports fewer than five unclaimed', async () => {
+    directory.uploadPrekeys.mockResolvedValueOnce(3).mockResolvedValueOnce(20);
+
+    await ensureDevice(1);
+
+    expect(directory.uploadPrekeys).toHaveBeenCalledTimes(2);
+    expect(directory.uploadPrekeys.mock.calls[1][1]).toEqual([{ id: 1, public_key: 'cHJla2V5' }]);
+  });
+
+  it('does not upload more prekeys when the reported count is at the threshold', async () => {
+    directory.uploadPrekeys.mockResolvedValueOnce(5);
+
+    await ensureDevice(1);
+
+    expect(directory.uploadPrekeys).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops topping up after a bounded number of batches when the count stays low', async () => {
+    // One registration batch plus three top-up batches, each reporting a low count.
+    directory.uploadPrekeys.mockResolvedValueOnce(0).mockResolvedValueOnce(0).mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+
+    await ensureDevice(1);
+
+    expect(directory.uploadPrekeys).toHaveBeenCalledTimes(4);
   });
 
   it('refuses to encrypt before a device exists', async () => {

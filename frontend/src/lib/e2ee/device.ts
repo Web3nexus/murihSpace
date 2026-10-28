@@ -13,8 +13,12 @@ import { fetchBundles, registerDevice, uploadPrekeys, type DeviceBundle } from '
 import { getWrapKey, loadSealedDevice, open, saveSealedDevice, seal } from './vault';
 
 const STATE_VERSION = 1;
-/** One-time prekeys generated and uploaded when a device registers. */
-const PREKEY_COUNT = 20;
+/** One-time prekeys generated per upload batch. */
+const PREKEY_BATCH_SIZE = 20;
+/** Upload more when the server reports fewer unclaimed one-time prekeys than this. */
+const PREKEY_LOW_WATER = 5;
+/** Caps the top-up batches in one pass, so a server that ignores uploads cannot loop forever. */
+const MAX_PREKEY_TOP_UP_BATCHES = 3;
 
 export type E2eeErrorCode = 'NOT_READY' | 'PEER_HAS_NO_DEVICE' | 'PEER_HAS_NO_PREKEY' | 'PEER_NEEDS_PQ_KEY';
 
@@ -126,13 +130,32 @@ async function publish(s: ActiveDevice): Promise<void> {
     kyber_prekey_public: bundle.kyber_prekey_public,
     kyber_prekey_signature: bundle.kyber_prekey_signature,
   });
-  const generated = JSON.parse(s.device.generatePrekeys(PREKEY_COUNT)) as GeneratedPrekeyJson[];
+  const available = await uploadPrekeyBatch(s);
+  await topUpPrekeys(s, available);
+  s.registered = true;
+}
+
+/**
+ * Generates one batch of one-time prekeys, saves their private parts, uploads the
+ * public parts, and returns the unclaimed count the server reports afterwards.
+ */
+async function uploadPrekeyBatch(s: ActiveDevice): Promise<number> {
+  const generated = JSON.parse(s.device.generatePrekeys(PREKEY_BATCH_SIZE)) as GeneratedPrekeyJson[];
   await persist(s);
-  await uploadPrekeys(
+  return uploadPrekeys(
     s.deviceUuid,
     generated.map((prekey) => ({ id: prekey.key_id, public_key: prekey.public_key })),
   );
-  s.registered = true;
+}
+
+/**
+ * Uploads more one-time prekeys while the server's reported count is below the low-water mark.
+ */
+async function topUpPrekeys(s: ActiveDevice, available: number): Promise<void> {
+  let count = available;
+  for (let batch = 0; count < PREKEY_LOW_WATER && batch < MAX_PREKEY_TOP_UP_BATCHES; batch += 1) {
+    count = await uploadPrekeyBatch(s);
+  }
 }
 
 function requireActive(): ActiveDevice {
@@ -223,7 +246,7 @@ export function releaseDevice(): Promise<void> {
  * claimed for this session. The directory uses the bridge's field names, so only the
  * one-time prekey is swapped in.
  */
-function toPeerBundle(bundle: DeviceBundle, oneTime: NonNullable<DeviceBundle['one_time_prekey']>): PublicBundleJson {
+function toPeerBundle(bundle: DeviceBundle, oneTime: DeviceBundle['one_time_prekey']): PublicBundleJson {
   if (!bundle.kyber_prekey_public) {
     throw new E2eeError('PEER_NEEDS_PQ_KEY', 'The recipient has no post-quantum key in the directory yet.');
   }
@@ -245,11 +268,10 @@ async function startSession(s: ActiveDevice, peerUserId: number): Promise<void> 
   if (bundles.length === 0) {
     throw new E2eeError('PEER_HAS_NO_DEVICE', 'The recipient has no encryption device yet.');
   }
-  // The newest device is the one the recipient is most likely using now.
-  const target = [...bundles].reverse().find((bundle) => bundle.one_time_prekey);
-  if (!target?.one_time_prekey) {
-    throw new E2eeError('PEER_HAS_NO_PREKEY', 'The recipient has no one-time key left.');
-  }
+  // The newest device is the one the recipient is most likely using now. Prefer the newest
+  // device that still has a one-time prekey; otherwise use the newest device without one.
+  const newestFirst = [...bundles].reverse();
+  const target = newestFirst.find((bundle) => bundle.one_time_prekey) ?? newestFirst[0];
   s.device.startSession(nameFor(peerUserId), JSON.stringify(toPeerBundle(target, target.one_time_prekey)));
   s.sessionPeers.add(peerUserId);
 }
