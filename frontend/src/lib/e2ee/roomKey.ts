@@ -3,7 +3,7 @@
  *
  * One random 256-bit key protects a whole room. It travels only between
  * devices, inside each pair's existing Signal session (see `E2eePeerTransport`).
- * The MuriSpace server never sees the key, so it cannot decrypt media.
+ * The MurihSpace server never sees the key, so it cannot decrypt media.
  *
  * Protocol (JSON, sent as bytes over the peer transport):
  * - `req`: a participant without a key asks the others for it.

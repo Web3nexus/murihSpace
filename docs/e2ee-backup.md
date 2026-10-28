@@ -38,7 +38,7 @@ library in the browser, so PBKDF2 is used.
 ## Recovery trade-off
 
 **If the passphrase is lost, the backup cannot be recovered.** This is by design.
-The server holds no key and no recovery copy, and nobody at MuriSpace can decrypt
+The server holds no key and no recovery copy, and nobody at MurihSpace can decrypt
 the backup. The user has to create a new backup from a device that still has the
 keys, or start over with new keys.
 
