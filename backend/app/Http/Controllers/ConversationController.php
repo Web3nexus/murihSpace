@@ -1018,11 +1018,6 @@ class ConversationController extends Controller
     {
         $original = Message::with('media')->findOrFail($messageId);
 
-        // A forwarded copy would have no body, and it would not carry the ciphertext.
-        if ($original->encryption !== null) {
-            return response()->json(['message' => 'Encrypted messages cannot be forwarded.'], 422);
-        }
-
         $validated = $request->validate([
             'to_conversation_id' => ['required', 'integer', 'exists:conversations,id'],
             'client_uuid' => ['nullable', 'string', 'max:64'],
@@ -1032,6 +1027,12 @@ class ConversationController extends Controller
         $this->authorizeParticipant($request, $targetConv);
 
         $this->authorizeParticipant($request, $original->conversation);
+
+        // Checked only after authorization, so the caller learns nothing about the message before that.
+        // A forwarded copy would have no body, and it would not carry the ciphertext.
+        if ($original->encryption !== null) {
+            return response()->json(['message' => 'Encrypted messages cannot be forwarded.'], 422);
+        }
 
         if ($this->isBlockedInDirectChat($targetConv, $request->user()->id)) {
             return response()->json([
