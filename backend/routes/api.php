@@ -785,7 +785,11 @@ Route::prefix('v1')->group(function () {
         // Plaintext uploads above remain unchanged.
         Route::prefix('attachments/encrypted')->group(function () {
             Route::post('/', [EncryptedAttachmentController::class, 'store'])->middleware('throttle:30,1');
-            Route::get('/{attachment}/url', [EncryptedAttachmentController::class, 'url'])->middleware('throttle:60,1');
+            // EncryptedAttachment uses UUID primary keys (HasUuids). The constraint rejects other
+            // segments before implicit model binding, so they 404 without a database query.
+            Route::get('/{attachment}/url', [EncryptedAttachmentController::class, 'url'])
+                ->middleware('throttle:60,1')
+                ->whereUuid('attachment');
         });
 
         // Secure chat media access

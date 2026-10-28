@@ -7,6 +7,7 @@ use App\Models\ConversationParticipant;
 use App\Models\EncryptedAttachment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -178,6 +179,23 @@ class EncryptedAttachmentTest extends TestCase
         Sanctum::actingAs($alice);
         $this->getJson('/api/v1/attachments/encrypted/'.(string) Str::uuid().'/url')
             ->assertStatus(404);
+    }
+
+    public function test_non_uuid_attachment_segment_returns_not_found_without_querying(): void
+    {
+        $alice = User::factory()->create(['email_verified_at' => now()]);
+        Sanctum::actingAs($alice);
+
+        $queries = [];
+        DB::listen(function ($query) use (&$queries) {
+            $queries[] = $query->sql;
+        });
+
+        $this->getJson('/api/v1/attachments/encrypted/not-a-uuid/url')->assertStatus(404);
+        $this->getJson('/api/v1/attachments/encrypted/1/url')->assertStatus(404);
+
+        $attachmentQueries = array_filter($queries, fn (string $sql) => str_contains($sql, 'encrypted_attachments'));
+        $this->assertSame([], array_values($attachmentQueries));
     }
 
     public function test_endpoints_require_authentication(): void
