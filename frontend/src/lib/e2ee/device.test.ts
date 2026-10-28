@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { E2eeError, ensureDevice, receiveDecrypted, releaseDevice, sendEncrypted, base64ToBytes, bytesToBase64 } from './device';
 
 // A stand-in for the WebAssembly bridge. It models only what device.ts relies on:
@@ -7,6 +7,8 @@ const bridgeState = vi.hoisted(() => ({
   created: [] as FakeDevice[],
   // The peer bundle each startSession call was given, as the bridge received it.
   started: [] as { remote: string; bundle: { registration_id: number; one_time_prekey: { id: number } | null } }[],
+  // When set, startSession throws, as the real bridge does for an identity it does not trust.
+  refuseStartSession: false,
 }));
 
 class FakeDevice {
@@ -40,6 +42,7 @@ class FakeDevice {
     return JSON.stringify([{ key_id: 1, public_key: 'cHJla2V5' }]);
   }
   startSession(remote: string, bundleJson: string): void {
+    if (bridgeState.refuseStartSession) throw new Error('untrusted identity');
     const bundle = JSON.parse(bundleJson) as { registration_id: number; one_time_prekey: { id: number } | null };
     bridgeState.started.push({ remote, bundle });
     this.sessions.add(remote);
@@ -250,5 +253,96 @@ describe('e2ee device service', () => {
 
   it('refuses to encrypt before a device exists', async () => {
     await expect(sendEncrypted(2, 'hi')).rejects.toMatchObject({ code: 'NOT_READY' });
+  });
+});
+
+describe('peer session binding', () => {
+  const REFRESH_MS = 10 * 60 * 1000;
+  let nowSpy: ReturnType<typeof vi.spyOn> | undefined;
+  let clock = 1_000_000;
+
+  /** Moves the clock past the session check window, so the next send re-fetches the peer's bundles. */
+  const advancePastRefresh = () => {
+    clock += REFRESH_MS + 1;
+  };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vaultStore.clear();
+    bridgeState.created.length = 0;
+    bridgeState.started.length = 0;
+    bridgeState.refuseStartSession = false;
+    clock = 1_000_000;
+    nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => clock);
+    await releaseDevice();
+  });
+
+  afterEach(() => {
+    nowSpy?.mockRestore();
+    nowSpy = undefined;
+  });
+
+  it('reuses the session while the peer device and identity key are unchanged', async () => {
+    directory.fetchBundles.mockResolvedValueOnce([peerBundle()]);
+    await ensureDevice(1);
+
+    await sendEncrypted(2, 'one');
+    clock += 1000;
+    const second = await sendEncrypted(2, 'two');
+
+    expect(bridgeState.started).toHaveLength(1);
+    expect(directory.fetchBundles).toHaveBeenCalledTimes(1);
+    expect(text(base64ToBytes(second))).toBe('user:2|two');
+  });
+
+  it('keeps the session after a re-check when the device and identity are unchanged', async () => {
+    directory.fetchBundles.mockResolvedValueOnce([peerBundle()]).mockResolvedValueOnce([peerBundle()]);
+    await ensureDevice(1);
+    await sendEncrypted(2, 'one');
+
+    advancePastRefresh();
+    await sendEncrypted(2, 'two');
+
+    expect(directory.fetchBundles).toHaveBeenCalledTimes(2);
+    expect(bridgeState.started).toHaveLength(1);
+  });
+
+  it('starts a new session when the peer device_uuid changes', async () => {
+    directory.fetchBundles.mockResolvedValueOnce([peerBundle({ device_uuid: 'old-device' })]);
+    await ensureDevice(1);
+    await sendEncrypted(2, 'one');
+
+    advancePastRefresh();
+    directory.fetchBundles.mockResolvedValueOnce([peerBundle({ device_uuid: 'new-device', registration_id: 77 })]);
+    await sendEncrypted(2, 'two');
+
+    expect(bridgeState.started).toHaveLength(2);
+    expect(bridgeState.started[1].remote).toBe('user:2');
+    expect(bridgeState.started[1].bundle.registration_id).toBe(77);
+  });
+
+  it('starts a new session when the peer identity key changes', async () => {
+    directory.fetchBundles.mockResolvedValueOnce([peerBundle()]);
+    await ensureDevice(1);
+    await sendEncrypted(2, 'one');
+
+    advancePastRefresh();
+    directory.fetchBundles.mockResolvedValueOnce([peerBundle({ identity_key: 'bmV3LWlkZW50aXR5' })]);
+    await sendEncrypted(2, 'two');
+
+    expect(bridgeState.started).toHaveLength(2);
+    expect(bridgeState.started[1].remote).toBe('user:2');
+  });
+
+  it('reports an explicit error when the bridge refuses a changed identity', async () => {
+    directory.fetchBundles.mockResolvedValueOnce([peerBundle()]);
+    await ensureDevice(1);
+    await sendEncrypted(2, 'one');
+
+    advancePastRefresh();
+    directory.fetchBundles.mockResolvedValueOnce([peerBundle({ identity_key: 'bmV3LWlkZW50aXR5' })]);
+    bridgeState.refuseStartSession = true;
+
+    await expect(sendEncrypted(2, 'two')).rejects.toMatchObject({ code: 'PEER_IDENTITY_CHANGED' });
   });
 });

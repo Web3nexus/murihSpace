@@ -19,8 +19,19 @@ const PREKEY_BATCH_SIZE = 20;
 const PREKEY_LOW_WATER = 5;
 /** Caps the top-up batches in one pass, so a server that ignores uploads cannot loop forever. */
 const MAX_PREKEY_TOP_UP_BATCHES = 3;
+/**
+ * How long a peer session is reused before the next send re-fetches the peer's bundles to
+ * check its device and identity key. A fetch claims one one-time prekey per device, so it
+ * is not repeated on every message. A device change is therefore picked up within this window.
+ */
+const PEER_BUNDLE_REFRESH_MS = 10 * 60 * 1000;
 
-export type E2eeErrorCode = 'NOT_READY' | 'PEER_HAS_NO_DEVICE' | 'PEER_HAS_NO_PREKEY' | 'PEER_NEEDS_PQ_KEY';
+export type E2eeErrorCode =
+  | 'NOT_READY'
+  | 'PEER_HAS_NO_DEVICE'
+  | 'PEER_HAS_NO_PREKEY'
+  | 'PEER_NEEDS_PQ_KEY'
+  | 'PEER_IDENTITY_CHANGED';
 
 export class E2eeError extends Error {
   readonly code: E2eeErrorCode;
@@ -38,8 +49,19 @@ interface StoredDevice {
   registered: boolean;
   /** The bridge's export: private keys and sessions. Never stored unsealed. */
   state: string;
-  /** Peers this device already has a session with, by user ID. */
-  sessionPeers: number[];
+  /** Peer sessions this device has, each bound to the peer device it was made with. */
+  sessionPeers: StoredPeerSession[];
+}
+
+/** The peer device and identity key a session was made with, and when they were last checked. */
+interface PeerSession {
+  deviceUuid: string;
+  identityKey: string;
+  checkedAt: number;
+}
+
+interface StoredPeerSession extends PeerSession {
+  userId: number;
 }
 
 interface ActiveDevice {
@@ -47,7 +69,8 @@ interface ActiveDevice {
   deviceUuid: string;
   registered: boolean;
   device: Device;
-  sessionPeers: Set<number>;
+  /** Peer sessions by user ID. */
+  sessionPeers: Map<number, PeerSession>;
 }
 
 let active: ActiveDevice | null = null;
@@ -107,7 +130,7 @@ async function persist(s: ActiveDevice): Promise<void> {
     deviceUuid: s.deviceUuid,
     registered: s.registered,
     state: s.device.export(),
-    sessionPeers: [...s.sessionPeers],
+    sessionPeers: [...s.sessionPeers].map(([userId, peer]) => ({ userId, ...peer })),
   };
   await saveSealedDevice(s.userId, await seal(key, s.userId, stored));
 }
@@ -176,8 +199,33 @@ async function loadFromStorage(userId: number): Promise<ActiveDevice | null> {
     deviceUuid: stored.deviceUuid,
     registered: stored.registered,
     device: Device.restore(nameFor(userId), stored.state),
-    sessionPeers: new Set(stored.sessionPeers),
+    sessionPeers: restorePeerSessions(stored.sessionPeers),
   };
+}
+
+/**
+ * Reads saved peer sessions. Entries saved before sessions were bound to a peer device
+ * are dropped. The next message to that peer then re-checks the device.
+ */
+function restorePeerSessions(saved: unknown): Map<number, PeerSession> {
+  const peers = new Map<number, PeerSession>();
+  if (!Array.isArray(saved)) return peers;
+  for (const entry of saved as Array<Partial<StoredPeerSession> | null>) {
+    if (
+      entry &&
+      typeof entry.userId === 'number' &&
+      typeof entry.deviceUuid === 'string' &&
+      typeof entry.identityKey === 'string' &&
+      typeof entry.checkedAt === 'number'
+    ) {
+      peers.set(entry.userId, {
+        deviceUuid: entry.deviceUuid,
+        identityKey: entry.identityKey,
+        checkedAt: entry.checkedAt,
+      });
+    }
+  }
+  return peers;
 }
 
 function replaceActive(next: ActiveDevice): void {
@@ -219,7 +267,7 @@ export function ensureDevice(userId: number): Promise<void> {
         registered: false,
         // The bridge's constructor makes no one-time prekeys: publish() generates and uploads them.
         device: new Device(nameFor(userId), randomRegistrationId(), 0),
-        sessionPeers: new Set(),
+        sessionPeers: new Map(),
       };
       await persist(fresh);
       replaceActive(fresh);
@@ -263,17 +311,55 @@ function toPeerBundle(bundle: DeviceBundle, oneTime: DeviceBundle['one_time_prek
   };
 }
 
-async function startSession(s: ActiveDevice, peerUserId: number): Promise<void> {
-  const bundles = await fetchBundles(peerUserId);
+/**
+ * The recipient device a new session is made with. The newest device is the one the
+ * recipient is most likely using now. Prefer the newest device that still has a one-time
+ * prekey; otherwise use the newest device without one.
+ */
+function pickPeerDevice(bundles: DeviceBundle[]): DeviceBundle {
   if (bundles.length === 0) {
     throw new E2eeError('PEER_HAS_NO_DEVICE', 'The recipient has no encryption device yet.');
   }
-  // The newest device is the one the recipient is most likely using now. Prefer the newest
-  // device that still has a one-time prekey; otherwise use the newest device without one.
   const newestFirst = [...bundles].reverse();
-  const target = newestFirst.find((bundle) => bundle.one_time_prekey) ?? newestFirst[0];
-  s.device.startSession(nameFor(peerUserId), JSON.stringify(toPeerBundle(target, target.one_time_prekey)));
-  s.sessionPeers.add(peerUserId);
+  return newestFirst.find((bundle) => bundle.one_time_prekey) ?? newestFirst[0];
+}
+
+/**
+ * Makes sure this device has a session with the peer that is bound to the peer's current
+ * device and identity key. A fresh binding is reused as is. Once it is older than
+ * PEER_BUNDLE_REFRESH_MS, the peer's bundles are re-fetched:
+ * - same device UUID and identity key: keep the session and refresh its check time;
+ * - different device UUID: start a new session with the new device;
+ * - different identity key: try the new session. The bridge's identity store trusts only the
+ *   first identity seen for a peer address and refuses a changed one, so a refusal is reported
+ *   as PEER_IDENTITY_CHANGED. The bridge has no call to accept a new identity for an address yet.
+ */
+async function ensurePeerSession(s: ActiveDevice, peerUserId: number): Promise<void> {
+  const bound = s.sessionPeers.get(peerUserId);
+  const now = Date.now();
+  if (bound && now - bound.checkedAt < PEER_BUNDLE_REFRESH_MS) return;
+
+  const target = pickPeerDevice(await fetchBundles(peerUserId));
+  if (bound && bound.deviceUuid === target.device_uuid && bound.identityKey === target.identity_key) {
+    s.sessionPeers.set(peerUserId, { ...bound, checkedAt: now });
+    return;
+  }
+
+  const peerBundle = JSON.stringify(toPeerBundle(target, target.one_time_prekey));
+  const identityChanged = bound !== undefined && bound.identityKey !== target.identity_key;
+  try {
+    s.device.startSession(nameFor(peerUserId), peerBundle);
+  } catch (error) {
+    if (identityChanged) {
+      throw new E2eeError('PEER_IDENTITY_CHANGED', 'The recipient has a new encryption identity, which this browser cannot accept yet.');
+    }
+    throw error;
+  }
+  s.sessionPeers.set(peerUserId, {
+    deviceUuid: target.device_uuid,
+    identityKey: target.identity_key,
+    checkedAt: now,
+  });
 }
 
 /**
@@ -285,9 +371,7 @@ export function sendEncrypted(peerUserId: number, text: string): Promise<string>
     const userId = requireActive().userId;
     return withUserLock(userId, async () => {
       const s = await reloadReady(userId);
-      if (!s.sessionPeers.has(peerUserId)) {
-        await startSession(s, peerUserId);
-      }
+      await ensurePeerSession(s, peerUserId);
       const bytes = s.device.encrypt(nameFor(peerUserId), new TextEncoder().encode(text));
       await persist(s);
       return bytesToBase64(bytes);
@@ -301,8 +385,9 @@ export function receiveDecrypted(senderUserId: number, ciphertext: string): Prom
     const userId = requireActive().userId;
     return withUserLock(userId, async () => {
       const s = await reloadReady(userId);
+      // Receiving does not bind a peer session: the message does not say which of the sender's
+      // devices sent it. The next send to that sender fetches the bundles and binds one.
       const plaintext = s.device.decrypt(nameFor(senderUserId), base64ToBytes(ciphertext));
-      s.sessionPeers.add(senderUserId);
       await persist(s);
       return new TextDecoder().decode(plaintext);
     });
