@@ -8,9 +8,10 @@
  */
 
 const DB_NAME = 'murihspace-e2ee';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const WRAP_STORE = 'wrap';
 const DEVICE_STORE = 'devices';
+const MESSAGE_STORE = 'messages';
 const WRAP_KEY_ID = 'v1';
 
 export interface SealedRecord {
@@ -28,6 +29,7 @@ function openDb(): Promise<IDBDatabase> {
         const db = request.result;
         if (!db.objectStoreNames.contains(WRAP_STORE)) db.createObjectStore(WRAP_STORE, { keyPath: 'id' });
         if (!db.objectStoreNames.contains(DEVICE_STORE)) db.createObjectStore(DEVICE_STORE, { keyPath: 'userId' });
+        if (!db.objectStoreNames.contains(MESSAGE_STORE)) db.createObjectStore(MESSAGE_STORE, { keyPath: 'key' });
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => {
@@ -111,4 +113,14 @@ export async function loadSealedDevice(userId: number): Promise<SealedRecord | n
 
 export async function saveSealedDevice(userId: number, sealed: SealedRecord): Promise<void> {
   await putRecord(DEVICE_STORE, { userId, iv: sealed.iv, ciphertext: sealed.ciphertext });
+}
+
+/** Reads one sealed plaintext-cache record. The key must already name one user's entry. */
+export async function loadSealedMessage(storeKey: string): Promise<SealedRecord | null> {
+  const row = await getRecord<{ key: string } & SealedRecord>(MESSAGE_STORE, storeKey);
+  return row ? { iv: row.iv, ciphertext: row.ciphertext } : null;
+}
+
+export async function saveSealedMessage(storeKey: string, sealed: SealedRecord): Promise<void> {
+  await putRecord(MESSAGE_STORE, { key: storeKey, iv: sealed.iv, ciphertext: sealed.ciphertext });
 }
