@@ -20,6 +20,11 @@
 
 export const ROOM_KEY_BYTES = 32;
 export const KEYRING_SIZE = 16;
+/**
+ * How far ahead of the local clock an incoming key generation may be. Keys from
+ * senders whose clocks run fast by more than this are rejected.
+ */
+export const MAX_GEN_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 export interface E2eePeerTransport {
   /** Sends bytes to one peer over the existing 1:1 Signal session. */
@@ -96,7 +101,11 @@ export interface RoomKeyManagerOptions {
   roomId: string;
   transport: E2eePeerTransport;
   keyring: RoomKeyring;
-  /** Decides whether this device may hand the key to a peer. Default: never. */
+  /**
+   * Decides whether a peer may exchange room keys with this device, in both directions:
+   * this device only hands its key to such a peer, and only accepts a key from one.
+   * Default: never, so nothing is shared or accepted.
+   */
   canShareWith?: (peerId: string) => boolean;
   /** This device's LiveKit identity. Used to decide whether it is the rotator. */
   localIdentity: string;
@@ -178,8 +187,18 @@ export class RoomKeyManager {
       return;
     }
 
+    // Only a peer this device is allowed to share with may hand us the key. Otherwise any
+    // participant could replace the room key.
+    if (!this.opts.canShareWith?.(peerId)) return;
+
     // Accept a key only when it is newer than ours. Stale or replayed keys are ignored.
     if (msg.gen <= this.gen) return;
+
+    // A generation far ahead of the local clock would block every later key, because
+    // the stale check above would reject them. Reject it.
+    const now = (this.opts.now ?? Date.now)();
+    if (msg.gen > now + MAX_GEN_CLOCK_SKEW_MS) return;
+
     const raw = fromBase64(msg.key);
     if (raw.length !== ROOM_KEY_BYTES) return;
     await this.install(raw, msg.gen, msg.index);

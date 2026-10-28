@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   KEYRING_SIZE,
+  MAX_GEN_CLOCK_SKEW_MS,
   ROOM_KEY_BYTES,
   RoomKeyManager,
   decodeRoomKeyMessage,
@@ -177,5 +178,63 @@ describe('RoomKeyManager', () => {
     // Bob is not the rotator, so he does nothing on the same event.
     const bobRotated = await bob.manager.onParticipantLeft(['alice']);
     expect(bobRotated).toBe(false);
+  });
+});
+
+describe('RoomKeyManager key acceptance', () => {
+  const keyMessage = (gen: number) =>
+    encodeRoomKeyMessage({
+      v: 1,
+      t: 'key',
+      room: 'room-1',
+      gen,
+      index: gen % KEYRING_SIZE,
+      key: btoa('k'.repeat(ROOM_KEY_BYTES)),
+    });
+
+  it('rejects a key from a peer that canShareWith does not allow', async () => {
+    const receiver = makeManager(new Bus(), 'receiver', {
+      canShareWith: (id) => id === 'trusted',
+      now: () => 1000,
+    });
+
+    await receiver.manager.handleFromPeer('stranger', keyMessage(1000));
+
+    expect(receiver.manager.hasKey).toBe(false);
+    expect(receiver.keyring.calls).toHaveLength(0);
+  });
+
+  it('rejects a key whose generation is further ahead of the local clock than the skew limit', async () => {
+    const now = 1_000_000;
+    const receiver = makeManager(new Bus(), 'receiver', { now: () => now });
+
+    await receiver.manager.handleFromPeer('trusted', keyMessage(now + MAX_GEN_CLOCK_SKEW_MS + 1));
+
+    expect(receiver.manager.hasKey).toBe(false);
+    expect(receiver.keyring.calls).toHaveLength(0);
+  });
+
+  it('accepts a key that is within the clock skew limit', async () => {
+    const now = 1_000_000;
+    const receiver = makeManager(new Bus(), 'receiver', { now: () => now });
+    const gen = now + MAX_GEN_CLOCK_SKEW_MS;
+
+    await receiver.manager.handleFromPeer('trusted', keyMessage(gen));
+
+    expect(receiver.manager.hasKey).toBe(true);
+    expect(receiver.manager.currentGen).toBe(gen);
+  });
+
+  it('accepts a valid newer key from an allowed peer', async () => {
+    const receiver = makeManager(new Bus(), 'receiver', {
+      canShareWith: (id) => id === 'trusted',
+      now: () => 5000,
+    });
+
+    await receiver.manager.handleFromPeer('trusted', keyMessage(4000));
+
+    expect(receiver.manager.hasKey).toBe(true);
+    expect(receiver.manager.currentGen).toBe(4000);
+    expect(receiver.keyring.last.raw).toHaveLength(ROOM_KEY_BYTES);
   });
 });

@@ -58,8 +58,9 @@ Items 1 to 3 are resolved in the current code. Item 4 is still open.
 2. **Resolved: one-time prekeys are generated and advertised.** The bridge generates a batch of
    one-time prekeys and advertises them. The server accepts uploads (`POST /v1/e2ee/devices/{uuid}/prekeys`,
    up to 100 per upload) and reports the remaining count.
-3. **Resolved: the bundle shape is flat.** The server returns
-   `{device_uuid, registration_id, identity_key, signed_prekey:{id,public_key,signature}, one_time_prekey:{id,public_key}|null}`.
+3. **Resolved: the bundle shape is flat.** `E2eeKeyController::bundles` returns
+   `{device_uuid, registration_id, identity_key, signed_prekey_id, signed_prekey_public, signed_prekey_signature, kyber_prekey_id, kyber_prekey_public, kyber_prekey_signature, one_time_prekey:{id,public_key}|null}`.
+   The signed and Kyber prekey fields are top-level, the same names the bridge's `PublicBundle` uses in `e2ee-bridge/src/lib.rs`.
    `one_time_prekey` is `null` when prekeys run out, so the client must handle a bundle with no one-time prekey.
 4. **Addressing and multi-device (open).** The bridge uses device id 1 and a caller-supplied name. Use the server user id
    (as a string) as the remote name on both sides. Multi-device per user is not handled yet.
@@ -111,8 +112,8 @@ changes:
 1. **Mark encrypted conversations.** Nothing in the backend or the `Conversation` model says a
    conversation is encrypted. Decide that first, per conversation or per user.
 2. **Fetch and start sessions.** For each recipient user, `GET /v1/e2ee/users/{user}/bundles`
-   (throttled to 30 per minute), then `startSession` for each device that has no session. Map the server
-   shape to the bridge shape (section 2, item 3) and handle `one_time_prekey: null`.
+   (throttled to 30 per minute), then `startSession` for each device that has no session. Pass the bundle
+   to `startSession` as returned, and handle `one_time_prekey: null`.
 3. **Send ciphertext only.** The backend requires `encryption: 'signal_v1'` with a non-empty
    `ciphertext`, and refuses any `content` on an encrypted message. Send
    `{ciphertext: base64(bytes), encryption: 'signal_v1', client_uuid}` with no `content`.
