@@ -31,6 +31,10 @@ import { UserAvatar } from '@/components/ui/avatar';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Message, MessageAvatar } from '@/components/ui/message';
 import { VoiceMessagePlayer } from '@/components/chat/VoiceMessagePlayer';
+import { sendEncrypted } from '@/lib/e2ee';
+import { E2EE_DIRECT_MESSAGES_ENABLED } from '@/lib/e2ee/flags';
+import { cacheKeyFor } from '@/lib/e2ee/plaintextCache';
+import { receiverFor } from '@/lib/e2ee/receive';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -61,6 +65,11 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
+/** Whether two rows are the same message, by server ID or by the client UUID sent with it. */
+function isSameMessage(a: ChatMessage, b: ChatMessage): boolean {
+  return (a.id !== undefined && a.id === b.id) || (!!a.client_uuid && a.client_uuid === b.client_uuid);
+}
+
 type FilterTab = 'all' | 'app' | 'communities' | 'marketplace' | 'spam';
 type FilterTabDef = { id: FilterTab | 'requests'; label: string; icon: React.ReactNode | null };
 
@@ -79,6 +88,9 @@ export function ChatLayout() {
   const [activeConv, setActiveConv] = useState<ConversationItem | null>(null);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Latest messages for realtime handlers, which are not re-created on every change.
+  const messagesRef = useRef<ChatMessage[]>(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
@@ -138,6 +150,32 @@ export function ChatLayout() {
   const currentUserName = user?.name || user?.username || 'there';
   const currentUserAvatar = user?.avatar_url || user?.avatar;
 
+  // Puts decrypted text into the message and its chat list preview. Only matching rows change.
+  const applyPlaintext = useCallback((target: ChatMessage, text: string) => {
+    setMessages((prev) => prev.map((m) => (isSameMessage(m, target) ? { ...m, content: text } : m)));
+    setConversations((prev) => prev.map((c) => (
+      c.latest_message && isSameMessage(c.latest_message, target)
+        ? { ...c, latest_message: { ...c.latest_message, content: text } }
+        : c
+    )));
+  }, []);
+
+  // Shows the text of an end-to-end encrypted message. Others' messages are decrypted; our
+  // own are only read from the local cache, since we cannot decrypt what we sent.
+  // Callers pass messages in arrival order: each `.then` below runs in call order, so the
+  // per-sender queue receives them in that order too.
+  const revealEncrypted = useCallback((msg: ChatMessage) => {
+    const ciphertext = msg.ciphertext;
+    if (!msg.encryption || msg.content || !ciphertext || currentUserId === undefined) return;
+    const cacheKey = cacheKeyFor(msg);
+    receiverFor(currentUserId)
+      .then((receiver) => (msg.user_id === currentUserId
+        ? receiver.lookup(cacheKey)
+        : receiver.receive(msg.user_id, cacheKey, ciphertext)))
+      .then((text) => { if (text !== null) applyPlaintext(msg, text); })
+      .catch((e: unknown) => logger.warn('Could not show an encrypted message', e));
+  }, [currentUserId, applyPlaintext]);
+
   useEffect(() => {
     let cancelled = false;
     apiFetch<{ user?: { id?: number; name?: string; username?: string; avatar?: string } }[] | { data?: { user?: { id?: number; name?: string; username?: string; avatar?: string } }[] }>('/stories')
@@ -188,6 +226,11 @@ export function ChatLayout() {
           : (m.status && m.status !== 'sent' ? m.status : 'sent')) as MessageStatus,
       }));
       setMessages(formatted);
+      // Decrypt in send order (message ID order) so each sender's ratchet sees them in sequence.
+      [...formatted]
+        .filter((m) => m.encryption && !m.content)
+        .sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+        .forEach(revealEncrypted);
 
       // Always mark as read and refresh unread badges
       apiFetch(`/conversations/${conv.id}/read`, { method: 'POST' }).catch(() => {});
@@ -219,11 +262,17 @@ export function ChatLayout() {
   };
 
   useRealtimeMessaging(activeConv?.id ?? null, currentUserId, {
-    onMessageReceived: useCallback((msg: ChatMessage) => {
-      const isSentByMe = msg.user_id === currentUserId;
+    onMessageReceived: useCallback((incoming: ChatMessage) => {
+      const isSentByMe = incoming.user_id === currentUserId;
       if (!isSentByMe) {
         playMessageReceivedSound();
       }
+      // An encrypted echo can arrive without its text. Keep the text already shown for it.
+      const known = messagesRef.current.find((m) =>
+        (incoming.client_uuid && m.client_uuid === incoming.client_uuid) || (incoming.id && m.id === incoming.id));
+      const msg: ChatMessage = incoming.encryption && !incoming.content && known
+        ? { ...incoming, content: known.content }
+        : incoming;
       setMessages((prev) => {
         // Reconcile optimistic/pending message by client_uuid
         if (msg.client_uuid && prev.some((m) => m.client_uuid === msg.client_uuid)) {
@@ -234,6 +283,7 @@ export function ChatLayout() {
         }
         return [...prev, { ...msg, status: (msg.status as MessageStatus) || 'sent' }];
       });
+      revealEncrypted(msg);
 
       if (!isSentByMe && msg.conversation_id === activeConv?.id) {
         // Mark as read (we're looking at it)
@@ -269,7 +319,7 @@ export function ChatLayout() {
             : { label: 'Open', onClick: () => navigate('/app/messages') },
         });
       }
-    }, [activeConv?.id, currentUserId, conversations, navigate, selectConversation]),
+    }, [activeConv?.id, currentUserId, conversations, navigate, selectConversation, revealEncrypted]),
     onMessageRead: useCallback((data) => {
       if (data.reader_id === currentUserId) {
         // Read on another device (e.g. mobile)
@@ -419,12 +469,27 @@ export function ChatLayout() {
     try {
       const res = await apiFetch<{ data: ConversationItem[] } | ConversationItem[]>('/conversations');
       const list = 'data' in res ? res.data : res;
-      setConversations(Array.isArray(list) ? list : []);
+      const items = Array.isArray(list) ? list : [];
+      setConversations(items);
+      // Previews show text already decrypted and cached. Previews are never decrypted here.
+      if (currentUserId !== undefined) {
+        receiverFor(currentUserId)
+          .then(async (receiver) => {
+            for (const c of items) {
+              const last = c.latest_message;
+              if (!last?.encryption || last.content) continue;
+              const cacheKey = cacheKeyFor(last);
+              const text = cacheKey ? await receiver.lookup(cacheKey) : null;
+              if (text !== null) applyPlaintext(last, text);
+            }
+          })
+          .catch((e: unknown) => logger.warn('Could not read cached previews', e));
+      }
     } catch (e) { logger.error('Failed to load conversations', e);
     } finally {
       setIsLoadingList(false);
     }
-  }, []);
+  }, [currentUserId, applyPlaintext]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -446,10 +511,17 @@ export function ChatLayout() {
     if (!activeConv) return;
     setMessages((prev) => prev.map((m) => (m.client_uuid === msg.client_uuid ? { ...m, status: 'pending' } : m)));
     try {
+      // Text in a 1:1 direct chat is encrypted on this device. Encryption failures
+      // throw here, so the message is marked failed and never sent as plaintext.
+      const peerId = activeConv.type === 'direct' ? activeConv.other_user?.id : undefined;
+      const encrypt = E2EE_DIRECT_MESSAGES_ENABLED && peerId !== undefined && msg.type === 'text' && !msg.attachment_url && msg.content.length > 0;
+      const body = encrypt
+        ? { content: '', ciphertext: await sendEncrypted(peerId, msg.content), encryption: 'signal_v1' }
+        : { content: msg.content };
       const res = await apiFetch<{ data: ChatMessage } | ChatMessage>(`/conversations/${activeConv.id}/messages`, {
         method: 'POST',
         body: JSON.stringify({
-          content: msg.content,
+          ...body,
           client_uuid: msg.client_uuid,
           reply_to_id: msg.reply_to_id ?? null,
           attachment_url: msg.attachment_url ?? null,
@@ -457,8 +529,17 @@ export function ChatLayout() {
         }),
       });
       const serverMsg = 'data' in res ? res.data : res;
-      setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...serverMsg, status: 'sent', client_uuid: msg.client_uuid } : m));
-      setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: serverMsg, updated_at: serverMsg.created_at } : c));
+      // The server keeps ciphertext only, so the sender's own copy keeps the text for this session.
+      const shown: ChatMessage = encrypt ? { ...serverMsg, content: msg.content } : serverMsg;
+      // Keep our own text locally: the server only has ciphertext, which we cannot decrypt.
+      const sentKey = encrypt && currentUserId !== undefined ? cacheKeyFor(serverMsg) : null;
+      if (sentKey && currentUserId !== undefined) {
+        await receiverFor(currentUserId)
+          .then((receiver) => receiver.remember(sentKey, msg.content))
+          .catch((e: unknown) => logger.error('Failed to cache sent message', e));
+      }
+      setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...shown, status: 'sent', client_uuid: msg.client_uuid } : m));
+      setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: shown, updated_at: serverMsg.created_at } : c));
       playMessageSentSound();
       loadConversations();
     } catch (e) {
@@ -995,7 +1076,7 @@ export function ChatLayout() {
                     </span>
                     {timeFormatted && <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{timeFormatted}</span>}
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.latest_message ? (() => { const isCall = c.latest_message.type === 'call' || (typeof c.latest_message.content === 'string' && (c.latest_message.content.trim().startsWith('{"call_id"') || (c.latest_message.content.trim().startsWith('{') && c.latest_message.content.includes('"call_id"')))); if (isCall) { try { const d = JSON.parse(c.latest_message.content); const missed = d.status === 'missed' || d.status === 'declined'; if (missed) return d.call_type === 'video' ? '📹 Missed Video Call' : '📞 Missed Call'; if (d.duration > 0) { const m = Math.floor(d.duration / 60); const s = d.duration % 60; const ds = m > 0 ? `${m}m ${s}s` : `${s}s`; return d.call_type === 'video' ? `📹 Video Call · ${ds}` : `📞 Voice Call · ${ds}`; } return d.call_type === 'video' ? '📹 Video Call' : '📞 Voice Call'; } catch { return '📞 Call'; } } return c.latest_message.content; })() : 'No messages yet'}</p>
+                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.latest_message ? (() => { const isCall = c.latest_message.type === 'call' || (typeof c.latest_message.content === 'string' && (c.latest_message.content.trim().startsWith('{"call_id"') || (c.latest_message.content.trim().startsWith('{') && c.latest_message.content.includes('"call_id"')))); if (isCall) { try { const d = JSON.parse(c.latest_message.content); const missed = d.status === 'missed' || d.status === 'declined'; if (missed) return d.call_type === 'video' ? '📹 Missed Video Call' : '📞 Missed Call'; if (d.duration > 0) { const m = Math.floor(d.duration / 60); const s = d.duration % 60; const ds = m > 0 ? `${m}m ${s}s` : `${s}s`; return d.call_type === 'video' ? `📹 Video Call · ${ds}` : `📞 Voice Call · ${ds}`; } return d.call_type === 'video' ? '📹 Video Call' : '📞 Voice Call'; } catch { return '📞 Call'; } } return c.latest_message.content || (c.latest_message.encryption ? 'Encrypted message' : ''); })() : 'No messages yet'}</p>
                 </div>
                 {c.unread_count > 0 && <span className="h-4 min-w-4 px-1 rounded-full bg-secondary text-secondary-foreground text-[10px] font-extrabold flex items-center justify-center shrink-0 ">{c.unread_count}</span>}
               </button>
@@ -1331,7 +1412,7 @@ export function ChatLayout() {
                               ))}
                             </div>
                           ) : (
-                            <p className="leading-relaxed whitespace-pre-wrap break-words font-normal"><EmojiRichText text={msg.content} /></p>
+                            <p className="leading-relaxed whitespace-pre-wrap break-words font-normal"><EmojiRichText text={msg.encryption && !msg.content ? 'Encrypted message' : msg.content} /></p>
                           )}
 
                           <div className="flex items-center justify-end gap-1 text-[9px] opacity-80 pt-0.5">
@@ -1625,7 +1706,7 @@ export function ChatLayout() {
           >
             <Reply weight="fill" className="h-4 w-4" /> Reply
           </button>
-          {actionMenu.msg.can_edit && actionMenu.msg.type === 'text' && (
+          {actionMenu.msg.can_edit && actionMenu.msg.type === 'text' && !actionMenu.msg.encryption && (
             <button
               type="button"
               onClick={() => { startEditing(actionMenu.msg); setActionMenu(null); }}

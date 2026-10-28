@@ -3,6 +3,8 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { purgeLegacyTokenStorage } from "@/lib/auth/token";
+import { ensureDevice, releaseDevice } from "@/lib/e2ee";
+import { E2EE_DIRECT_MESSAGES_ENABLED } from "@/lib/e2ee/flags";
 import { hasSessionHint, setSessionHint } from "@/lib/auth/sessionHint";
 import {
   getSavedAccounts,
@@ -213,6 +215,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [refreshSavedAccounts]);
+
+  // This browser's end-to-end encryption device is created or restored per signed-in user.
+  const signedInUserId = user?.id;
+  useEffect(() => {
+    if (signedInUserId === undefined || !E2EE_DIRECT_MESSAGES_ENABLED) return;
+    ensureDevice(signedInUserId).catch((err: unknown) => {
+      logger.warn("[E2EE] device setup failed", err instanceof Error ? err.message : "unknown error");
+    });
+  }, [signedInUserId]);
 
   const login = useCallback(async (email: string, password: string): Promise<UserProfile | null> => {
     setLoading(true);
@@ -525,6 +536,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logger.error("Logout request failed:", err instanceof Error ? err.message : "unknown error");
     } finally {
       purgeLegacyTokenStorage();
+      void releaseDevice();
       setSessionHint(false);
       // The account stays in the saved list only while it is signed in here.
       if (signedInId !== undefined) setSavedAccounts(removeSavedAccountFromStore(signedInId));

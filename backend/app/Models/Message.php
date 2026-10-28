@@ -19,6 +19,7 @@ class Message extends Model
         'content',
         'encryption',
         'ciphertext',
+        'key_epoch',
         'type',
         'status',
         'media_status',
@@ -34,6 +35,7 @@ class Message extends Model
     ];
 
     protected $casts = [
+        'key_epoch' => 'integer',
         'is_automated' => 'boolean',
         'edited_at' => 'datetime',
         'edit_count' => 'integer',

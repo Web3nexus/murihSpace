@@ -402,6 +402,7 @@ class LiveStreamController extends Controller
             'background_sound' => ['nullable', 'string', 'max:100'],
             'pinned_product_id' => ['nullable', 'integer'],
             'pinned_product_type' => ['nullable', 'string', 'in:physical,digital'],
+            'e2ee' => ['nullable', 'boolean'],
         ]);
 
         $user = $request->user();
@@ -472,6 +473,7 @@ class LiveStreamController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'stream_mode' => $validated['stream_mode'] ?? 'video',
+            'e2ee' => (bool) ($validated['e2ee'] ?? false),
             'status' => 'live',
             'livekit_room' => $roomName,
             'viewers_count' => 1,

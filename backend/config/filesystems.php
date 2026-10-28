@@ -160,7 +160,8 @@ return [
         ],
 
         // Private files (chat attachments, digital products). Never public: reads
-        // go through signed temporary URLs only.
+        // go through signed temporary URLs only. Also holds encrypted (ciphertext-only)
+        // attachments; shares credentials with 'contabo', only the bucket name differs.
         'contabo_private' => [
             'driver' => 's3',
             'key' => env('CONTABO_ACCESS_KEY_ID'),
@@ -187,7 +188,6 @@ return [
             'throw' => false,
             'report' => false,
         ],
-
     ],
 
     /*

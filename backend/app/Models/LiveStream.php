@@ -19,6 +19,7 @@ class LiveStream extends Model
         'title',
         'description',
         'stream_mode',
+        'e2ee',
         'status',
         'livekit_room',
         'viewers_count',
@@ -46,6 +47,7 @@ class LiveStream extends Model
     protected $casts = [
         'user_id' => 'integer',
         'community_id' => 'integer',
+        'e2ee' => 'boolean',
         'viewers_count' => 'integer',
         'peak_viewers' => 'integer',
         'likes_count' => 'integer',

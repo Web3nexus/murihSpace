@@ -17,6 +17,10 @@ class Conversation extends Model
         'title',
     ];
 
+    protected $casts = [
+        'e2ee_epoch' => 'integer',
+    ];
+
     public function community(): BelongsTo
     {
         return $this->belongsTo(Community::class);

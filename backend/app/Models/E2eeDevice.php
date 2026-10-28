@@ -19,12 +19,16 @@ class E2eeDevice extends Model
         'signed_prekey_id',
         'signed_prekey_public',
         'signed_prekey_signature',
+        'kyber_prekey_id',
+        'kyber_prekey_public',
+        'kyber_prekey_signature',
         'last_seen_at',
     ];
 
     protected $casts = [
         'registration_id' => 'integer',
         'signed_prekey_id' => 'integer',
+        'kyber_prekey_id' => 'integer',
         'last_seen_at' => 'datetime',
     ];
 

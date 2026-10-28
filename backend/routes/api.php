@@ -100,6 +100,7 @@ use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\MediaKitController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MembershipController;
+use App\Http\Controllers\EncryptedAttachmentController;
 use App\Http\Controllers\MessageAttachmentController;
 use App\Http\Controllers\MessageReactionController;
 use App\Http\Controllers\MilestoneController;
@@ -720,6 +721,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/read-all', [ConversationController::class, 'readAll']);
             Route::post('/{id}/read', [ConversationController::class, 'markRead']);
             Route::post('/{id}/delivered', [ConversationController::class, 'markDelivered']);
+            // Encrypted group chats: sender key distributions (opaque 1:1 ciphertexts)
+            Route::get('/{id}/sender-keys', [\App\Http\Controllers\E2eeSenderKeyController::class, 'index']);
+            Route::post('/{id}/sender-keys', [\App\Http\Controllers\E2eeSenderKeyController::class, 'store']);
+            Route::post('/{id}/sender-keys/ack', [\App\Http\Controllers\E2eeSenderKeyController::class, 'acknowledge']);
             // Sprint 12
             Route::post('/{id}/typing', [ConversationController::class, 'typing']);
             Route::get('/{id}/settings', [ConversationSettingsController::class, 'show']);
@@ -774,6 +779,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/reactions', [MessageReactionController::class, 'toggle']);
             Route::get('/{id}/reactions', [MessageReactionController::class, 'index']);
             Route::post('/{id}/forward', [ConversationController::class, 'forwardMessage']);
+        });
+
+        // Client-side encrypted attachments (server only sees ciphertext).
+        // Plaintext uploads above remain unchanged.
+        Route::prefix('attachments/encrypted')->group(function () {
+            Route::post('/', [EncryptedAttachmentController::class, 'store'])->middleware('throttle:30,1');
+            Route::get('/{attachment}/url', [EncryptedAttachmentController::class, 'url'])->middleware('throttle:60,1');
         });
 
         // Secure chat media access
@@ -2056,6 +2068,12 @@ Route::prefix('v1')->group(function () {
     Route::prefix('e2ee')->middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/devices', [\App\Http\Controllers\E2eeKeyController::class, 'register']);
         Route::post('/devices/{deviceUuid}/prekeys', [\App\Http\Controllers\E2eeKeyController::class, 'uploadPrekeys']);
+
+        // Encrypted key backup: ciphertext only, owner only.
+        Route::put('/backup', [\App\Http\Controllers\E2eeBackupController::class, 'store'])
+            ->middleware('throttle:10,1');
+        Route::get('/backup', [\App\Http\Controllers\E2eeBackupController::class, 'show'])
+            ->middleware('throttle:30,1');
     });
 
     Route::get('/e2ee/users/{user}/bundles', [\App\Http\Controllers\E2eeKeyController::class, 'bundles'])
